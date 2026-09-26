@@ -74,6 +74,10 @@ let isPrimaryInstance = true;
 if (smokeDir) {
   // Never touch (or lock against) the user's real profile during a smoke test.
   app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'gamepad-tester-smoke-')));
+  // The window is hidden, and capturing a hidden window fails with UnknownVizError on
+  // some GPU drivers. Software rendering makes the screenshots independent of the GPU
+  // (CI runners have none anyway); it has to be set before the app is ready.
+  app.disableHardwareAcceleration();
 } else if (!app.requestSingleInstanceLock()) {
   // Only one process can hold the HID device anyway.
   isPrimaryInstance = false;
