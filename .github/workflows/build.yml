@@ -39,20 +39,43 @@ jobs:
       - name: Package
         run: npx electron-builder --publish never
 
+      # The step above tests the source tree; these test what is actually shipped.
+      - name: Smoke test the packaged app
+        run: npm run smoke:packaged
+
+      - name: Verify the .dmg itself (mount, copy out, check signature, launch)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          DMG="$(ls release/*.dmg | head -n 1)"
+          MNT="$(mktemp -d)"
+          DEST="$(mktemp -d)"
+          hdiutil attach "$DMG" -mountpoint "$MNT" -nobrowse -quiet
+          APP="$(ls -d "$MNT"/*.app | head -n 1)"
+          cp -R "$APP" "$DEST/"
+          hdiutil detach "$MNT" -quiet || hdiutil detach "$MNT" -force -quiet
+          COPY="$DEST/$(basename "$APP")"
+          echo "--- architectures:"; lipo -archs "$COPY/Contents/MacOS/"* || true
+          echo "--- signature:"; codesign -dv "$COPY" 2>&1 || true
+          codesign --verify --deep --strict --verbose=2 "$COPY"
+          node scripts/smoke-packaged.mjs "$COPY"
+
       - uses: actions/upload-artifact@v4
         with:
           name: installers-${{ matrix.os }}
           path: |
             release/*.exe
             release/*.dmg
-            release/*.zip
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: smoke-output-${{ matrix.os }}
-          path: smoke-output/
+          path: |
+            smoke-output/
+            smoke-packaged/
 
       - name: Attach to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -61,4 +84,3 @@ jobs:
           files: |
             release/*.exe
             release/*.dmg
-            release/*.zip

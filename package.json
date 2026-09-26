@@ -1,6 +1,6 @@
 {
   "name": "gamepad-tester-offline",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Offline desktop app for testing and calibrating PlayStation controllers (DualShock 4, DualSense, DualSense Edge, PS VR2)",
   "private": true,
   "license": "MIT",
@@ -13,6 +13,7 @@
     "icon": "electron scripts/make-icon.cjs",
     "start": "electron .",
     "smoke": "electron . --smoke-test=./smoke-output",
+    "smoke:packaged": "node scripts/smoke-packaged.mjs",
     "dist": "npm run build:web && electron-builder --publish never",
     "dist:win": "npm run build:web && electron-builder --win --publish never",
     "dist:mac": "npm run build:web && electron-builder --mac --publish never"
@@ -69,15 +70,7 @@
         {
           "target": "dmg",
           "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64",
-            "arm64"
+            "universal"
           ]
         }
       ],

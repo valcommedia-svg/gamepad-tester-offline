@@ -5,6 +5,7 @@
 // network, saves screenshots and reports any console error or blocked request.
 
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -145,6 +146,16 @@ module.exports = async function smokeTest(win, outDir, probes) {
         "!document.querySelector('#btnconnect').disabled && getComputedStyle(document.querySelector('#connectspinner')).display === 'none'");
       check('connect-recovers-after-cancel', recovered);
       await screenshot(wc, path.join(outDir, '4-after-connect-cancel.png'));
+
+      // 5) Help > Copy diagnostics report: has the versions and the chooser
+      // request from step 4, and must not leak the user's home directory.
+      const report = probes.diagnostics();
+      results.diagnostics = report;
+      check('diagnostics-report',
+        /Electron:\s+\d/.test(report)
+        && /Connect dialog requests: [1-9]/.test(report)
+        && !report.toLowerCase().includes(os.homedir().toLowerCase()),
+        report.split('\n').slice(0, 4));
     }
 
     const blocked = probes.blockedRequests();

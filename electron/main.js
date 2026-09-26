@@ -1,12 +1,13 @@
 'use strict';
 
 const {
-  app, BrowserWindow, Menu, dialog, net, protocol, session, shell, systemPreferences,
+  app, BrowserWindow, Menu, clipboard, dialog, net, protocol, session, shell, systemPreferences,
 } = require('electron');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
+const diagnostics = require('./diagnostics');
 
 const SCHEME = 'app';
 const HOST = 'ds';
@@ -40,6 +41,9 @@ const STRINGS = {
     cancel: 'Cancel',
     help: 'Help',
     about: 'About / credits',
+    diagnostics: 'Copy diagnostics',
+    diagCopiedTitle: 'Diagnostics copied to the clipboard',
+    diagCopiedDetail: 'Paste it into your bug report. It contains app and system versions, the controllers offered to the connect dialog (name and USB IDs only, no serial numbers) and recent page errors. Nothing is sent anywhere.',
     credits: 'Web interface and calibration logic: dualshock-tools (MIT License) by the_al, Mathias Malmqvist and contributors. Translations by the dualshock-tools community.\n\n' + UPSTREAM_REPO,
     upstreamSite: 'Original website (dualshock-tools)',
     upstreamRepo: 'Source code of the original project',
@@ -52,6 +56,9 @@ const STRINGS = {
     cancel: 'Отмена',
     help: 'Справка',
     about: 'О программе и авторах',
+    diagnostics: 'Скопировать диагностику',
+    diagCopiedTitle: 'Диагностика скопирована в буфер обмена',
+    diagCopiedDetail: 'Вставьте её в сообщение об ошибке. Внутри версии приложения и системы, контроллеры, которые предлагались диалогу подключения (только название и USB-идентификаторы, без серийных номеров), и последние ошибки страницы. Никуда ничего не отправляется.',
     credits: 'Веб-интерфейс и логика калибровки: dualshock-tools (лицензия MIT), авторы the_al, Mathias Malmqvist и участники проекта. Переводы выполнены сообществом dualshock-tools.\n\n' + UPSTREAM_REPO,
     upstreamSite: 'Оригинальный сайт (dualshock-tools)',
     upstreamRepo: 'Исходный код оригинального проекта',
@@ -144,6 +151,7 @@ function configureSession(ses) {
   ses.on('select-hid-device', (event, details, callback) => {
     event.preventDefault();
     hidSelections.push(details.deviceList.length);
+    diagnostics.recordHidRequest(details.deviceList);
     chooseHidDevice(details.deviceList).then(callback, () => callback());
   });
 }
@@ -175,6 +183,18 @@ async function chooseHidDevice(devices) {
   return response < devices.length ? devices[response].deviceId : undefined;
 }
 
+async function copyDiagnostics() {
+  const s = t();
+  const report = diagnostics.build({ blockedRequests });
+  clipboard.writeText(report);
+  await dialog.showMessageBox(BrowserWindow.getFocusedWindow() ?? mainWindow ?? undefined, {
+    type: 'info',
+    message: s.diagCopiedTitle,
+    detail: `${s.diagCopiedDetail}\n\n${report.split('\n').slice(0, 12).join('\n')}`,
+    buttons: ['OK'],
+  });
+}
+
 function buildMenu() {
   const s = t();
   const template = [
@@ -189,6 +209,8 @@ function buildMenu() {
       submenu: [
         // macOS already has "About" in the application menu
         ...(process.platform === 'darwin' ? [] : [{ label: s.about, click: () => app.showAboutPanel() }]),
+        { label: s.diagnostics, click: () => { copyDiagnostics(); } },
+        { type: 'separator' },
         { label: s.upstreamSite, click: () => openExternal(UPSTREAM_SITE) },
         { label: s.upstreamRepo, click: () => openExternal(UPSTREAM_REPO) },
       ],
@@ -225,6 +247,21 @@ function createWindow() {
 
   win.once('ready-to-show', () => win.show());
 
+  // Kept only in memory, for Help > Copy diagnostics.
+  win.webContents.on('console-message', (event, ...legacy) => {
+    const level = event.level ?? legacy[0]; // Electron passes an event object; older builds passed positional args
+    const message = event.message ?? legacy[1];
+    if (level === 'error' || level === 'warning' || level === 3 || level === 2) {
+      diagnostics.recordPageEvent(level === 'error' || level === 3 ? 'error' : 'warning', message);
+    }
+  });
+  win.webContents.on('render-process-gone', (_e, details) => {
+    diagnostics.recordPageEvent('crash', `renderer gone: ${details.reason} (exit ${details.exitCode})`);
+  });
+  win.webContents.on('did-fail-load', (_e, code, description, url) => {
+    diagnostics.recordPageEvent('load-failed', `${code} ${description} ${url}`);
+  });
+
   // Links to PayPal / GitHub / YouTube etc. belong in the user's browser, not in this window.
   win.webContents.setWindowOpenHandler(({ url }) => {
     openExternal(url);
@@ -256,6 +293,7 @@ app.whenReady().then(async () => {
     const code = await require('./smoke-test.js')(mainWindow, smokeDir, {
       blockedRequests: () => blockedRequests,
       hidSelections: () => hidSelections,
+      diagnostics: () => diagnostics.build({ blockedRequests }),
     });
     app.exit(code);
   }
