@@ -1,6 +1,6 @@
 {
   "name": "gamepad-tester-offline",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Offline desktop app for testing and calibrating PlayStation controllers (DualShock 4, DualSense, DualSense Edge, PS VR2)",
   "private": true,
   "license": "MIT",
@@ -40,8 +40,18 @@
     "afterSign": "build/adhoc-sign.cjs",
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] },
-        { "target": "portable", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     },
     "nsis": {
@@ -56,8 +66,20 @@
     "mac": {
       "category": "public.app-category.utilities",
       "target": [
-        { "target": "dmg", "arch": ["x64", "arm64"] },
-        { "target": "zip", "arch": ["x64", "arm64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
       "hardenedRuntime": true,
       "gatekeeperAssess": false,

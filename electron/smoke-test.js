@@ -21,6 +21,8 @@ const INSPECT = `(async () => {
   out.bootstrap = typeof window.bootstrap === 'object' && !!window.bootstrap.Modal;
   out.connectButton = !!document.querySelector('#btnconnect');
   out.modalCount = document.querySelectorAll('#modals-container .modal').length;
+  out.footerRemoved = !document.querySelector('body > footer') && !document.getElementById('footbody');
+  out.bodyPaddingBottom = getComputedStyle(document.body).paddingBottom;
   try {
     await document.fonts.load('900 1em "Font Awesome 6 Free"');
     out.fontAwesome = document.fonts.check('900 1em "Font Awesome 6 Free"');
@@ -100,6 +102,7 @@ module.exports = async function smokeTest(win, outDir, probes) {
       check('bootstrap-local', info.bootstrap);
       check('fontawesome-font-loaded', info.fontAwesome);
       check('templates-loaded', info.modalCount > 5, info.modalCount);
+      check('footer-removed', info.footerRemoved && info.bodyPaddingBottom === '16px', info.bodyPaddingBottom);
       check('fetch-works', Object.values(info.fetch).every((s) => s === 200), info.fetch);
       check('local-storage', info.localStorage);
       check('hid-getDevices-empty', info.hidGetDevices === 0, info.hidGetDevices);

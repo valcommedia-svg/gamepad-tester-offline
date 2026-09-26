@@ -69,6 +69,40 @@ export const PATCHES = [
     count: 1,
   },
 
+  // --- bottom bar (version, donate link, translator credits, social icons) ---
+  // Credits stay reachable through Help > About in the desktop app (electron/main.js).
+  // Nothing in upstream's JS depends on the footer: #authorMsg is only written via
+  // jQuery, which ignores a missing element. The other patches drop the space that
+  // was reserved for the fixed footer.
+  {
+    name: 'remove footer bar',
+    file: 'index.html',
+    find: /[ \t]*<!-- Fixed Footer -->\s*<footer[\s\S]*?<\/footer>[ \t]*\r?\n?/g,
+    replace: '',
+    count: 1,
+  },
+  {
+    name: 'alerts: no footer to sit above',
+    file: 'index.html',
+    find: /(z-index: 1040; pointer-events: none; bottom: )70px;/g,
+    replace: (_m, head) => `${head}16px;`,
+    count: 1,
+  },
+  {
+    name: 'drift notice: no footer to sit above',
+    file: 'index.html',
+    find: /(id="aboutdrift" style="position: fixed; bottom: )6em;/g,
+    replace: (_m, head) => `${head}1em;`,
+    count: 1,
+  },
+  {
+    name: 'page bottom padding',
+    file: 'scss/main.scss',
+    find: /(body\s*\{\s*padding-bottom:\s*)80px;/g,
+    replace: (_m, head) => `${head}16px;`,
+    count: 1,
+  },
+
   // The welcome dialog claims the site uses analytics - untrue once it's removed.
   {
     name: 'welcome modal analytics notice',

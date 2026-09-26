@@ -39,6 +39,8 @@ const STRINGS = {
     pickDetail: 'Choose the controller to connect. Only one can be used at a time.',
     cancel: 'Cancel',
     help: 'Help',
+    about: 'About / credits',
+    credits: 'Web interface and calibration logic: dualshock-tools (MIT License) by the_al, Mathias Malmqvist and contributors. Translations by the dualshock-tools community.\n\n' + UPSTREAM_REPO,
     upstreamSite: 'Original website (dualshock-tools)',
     upstreamRepo: 'Source code of the original project',
   },
@@ -49,6 +51,8 @@ const STRINGS = {
     pickDetail: 'Выберите контроллер для подключения. Одновременно можно работать только с одним.',
     cancel: 'Отмена',
     help: 'Справка',
+    about: 'О программе и авторах',
+    credits: 'Веб-интерфейс и логика калибровки: dualshock-tools (лицензия MIT), авторы the_al, Mathias Malmqvist и участники проекта. Переводы выполнены сообществом dualshock-tools.\n\n' + UPSTREAM_REPO,
     upstreamSite: 'Оригинальный сайт (dualshock-tools)',
     upstreamRepo: 'Исходный код оригинального проекта',
   },
@@ -183,12 +187,22 @@ function buildMenu() {
       label: s.help,
       role: 'help',
       submenu: [
+        // macOS already has "About" in the application menu
+        ...(process.platform === 'darwin' ? [] : [{ label: s.about, click: () => app.showAboutPanel() }]),
         { label: s.upstreamSite, click: () => openExternal(UPSTREAM_SITE) },
         { label: s.upstreamRepo, click: () => openExternal(UPSTREAM_REPO) },
       ],
     },
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+
+  app.setAboutPanelOptions({
+    applicationName: 'GamePad Tester Offline',
+    applicationVersion: app.getVersion(),
+    copyright: 'Web interface © the_al and dualshock-tools contributors (MIT)',
+    credits: s.credits,
+    website: UPSTREAM_SITE,
+  });
 }
 
 function createWindow() {
