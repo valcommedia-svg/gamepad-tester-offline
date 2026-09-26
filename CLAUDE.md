@@ -47,7 +47,8 @@ After any change: `npm test`, `npm run build:web`, `npm run smoke`.
   clipboard write) and only to its own origin, and provides the WebHID device chooser.
   `electron/diagnostics.js` backs Help > Copy diagnostics (no serial numbers, no paths).
 - `electron/smoke-test.js` drives the real window, including the gamepad page with a synthetic
-  `navigator.getGamepads()`.
+  `navigator.getGamepads()`. In smoke mode `main.js` disables hardware acceleration: capturing the
+  hidden window failed with `UnknownVizError` on some GPU drivers.
 - CI (`.github/workflows/build.yml`): unit tests, source smoke test, packaging, smoke test of the
   packaged app, and on macOS mounts the built dmg, verifies the signature and launches it from there.
   A `v*` tag attaches the installers to a GitHub Release.
@@ -71,6 +72,6 @@ After any change: `npm test`, `npm run build:web`, `npm run smoke`.
 ## Release history
 
 v1.0.0, v1.0.1 (footer removed, Help > About), v1.1.0 (universal dmg, packaged-app tests in CI,
-Help > Copy diagnostics). v1.2.0 (any-gamepad page) is in `package.json` but not yet released.
+Help > Copy diagnostics), v1.2.0 (any-gamepad page, released; later commits on `main` are not in it).
 Open idea: a weekly workflow that bumps the pinned upstream commit and opens a pull request (needs the
 repo setting "Allow GitHub Actions to create and approve pull requests").
