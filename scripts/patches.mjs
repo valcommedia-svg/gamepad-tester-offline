@@ -81,6 +81,19 @@ export const PATCHES = [
     count: 1,
   },
 
+  // The top-menu link is easy to miss: users with an Xbox pad concluded that only
+  // Sony controllers work. A visible button under "Connect" points them to the page.
+  {
+    name: 'gamepad button under Connect',
+    file: 'index.html',
+    find: /(<button id="btnconnect"[\s\S]*?<\/button>\s*)(<br>)/g,
+    replace: (_m, button, br) =>
+      `${button}<a class="btn btn-outline-info mt-3" href="gamepad.html">` +
+      '<i class="fas fa-gamepad"></i>&nbsp;<span class="ds-i18n">Xbox or another gamepad? Open the gamepad test</span></a>\n      ' +
+      br,
+    count: 1,
+  },
+
   // --- bottom bar (version, donate link, translator credits, social icons) ---
   // Credits stay reachable through Help > About in the desktop app (electron/main.js).
   // Nothing in upstream's JS depends on the footer: #authorMsg is only written via

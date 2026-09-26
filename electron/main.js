@@ -35,7 +35,7 @@ protocol.registerSchemesAsPrivileged([{
 const STRINGS = {
   en: {
     noDeviceTitle: 'No controller found',
-    noDeviceDetail: 'Connect the controller with a USB cable and press Connect again.\n\nBluetooth is not supported for calibration.',
+    noDeviceDetail: 'Connect the controller with a USB cable and press Connect again.\n\nBluetooth is not supported for calibration.\n\nThis page works with Sony controllers only. For Xbox and other gamepads press the "Xbox or another gamepad?" button under Connect.',
     pickTitle: 'Several controllers found',
     pickDetail: 'Choose the controller to connect. Only one can be used at a time.',
     cancel: 'Cancel',
@@ -50,7 +50,7 @@ const STRINGS = {
   },
   ru: {
     noDeviceTitle: 'Контроллер не найден',
-    noDeviceDetail: 'Подключите контроллер USB-кабелем и нажмите «Подключить» ещё раз.\n\nПо Bluetooth калибровка не поддерживается.',
+    noDeviceDetail: 'Подключите контроллер USB-кабелем и нажмите «Подключить» ещё раз.\n\nПо Bluetooth калибровка не поддерживается.\n\nЭта страница работает только с контроллерами Sony. Для Xbox и других геймпадов нажмите кнопку «Xbox или другой геймпад?» под кнопкой «Подключить».',
     pickTitle: 'Найдено несколько контроллеров',
     pickDetail: 'Выберите контроллер для подключения. Одновременно можно работать только с одним.',
     cancel: 'Отмена',

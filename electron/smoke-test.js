@@ -180,6 +180,18 @@ module.exports = async function smokeTest(win, outDir, probes) {
         && !report.toLowerCase().includes(os.homedir().toLowerCase()),
         report.split('\n').slice(0, 4));
 
+      // 5b) the visible "Xbox or another gamepad?" button under Connect on the main page
+      const button = await wc.executeJavaScript(`(() => {
+        const a = document.querySelector('#offlinebar a[href="gamepad.html"]');
+        if (!a) return null;
+        const r = a.getBoundingClientRect();
+        return { text: a.textContent.trim(), visible: r.width > 100 && r.height > 20 && getComputedStyle(a).visibility === 'visible' };
+      })()`);
+      results.gamepadButton = button;
+      check('gamepad-button-under-connect',
+        !!button && button.visible && /Xbox/.test(button.text) && /[Ѐ-ӿ]/.test(button.text), button);
+      await screenshot(wc, path.join(outDir, '4b-main-page-gamepad-button.png'));
+
       // 6) "Any gamepad" page, reached through the menu link and driven by a synthetic pad
       const link = await wc.executeJavaScript(
         "(() => { const a = document.querySelector('a[href=\"gamepad.html\"]'); return a ? a.textContent : null; })()");

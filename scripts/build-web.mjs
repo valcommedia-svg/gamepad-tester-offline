@@ -82,7 +82,11 @@ for (const name of fs.readdirSync(extraDir)) {
 
 // Translations for strings we add to upstream's page (its other languages fall back to English).
 const EXTRA_TRANSLATIONS = {
-  ru_ru: { 'Any gamepad test': 'Тест любого геймпада' },
+  ru_ru: {
+    'Any gamepad test': 'Тест любого геймпада',
+    'Xbox or another gamepad? Open the gamepad test':
+      'Xbox или другой геймпад? Открыть тест геймпада',
+  },
 };
 for (const [lang, entries] of Object.entries(EXTRA_TRANSLATIONS)) {
   const file = path.join(webDir, 'lang', `${lang}.json`);
