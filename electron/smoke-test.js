@@ -45,14 +45,16 @@ const INSPECT = `(async () => {
 // can circle, a right stick with a small constant offset, buttons, 125 Hz
 // timestamps and a counting vibration actuator.
 const FAKE_GAMEPAD = `(() => {
-  const s = { lx: 0, ly: 0, rx: 0.03, ry: -0.02, buttons: {}, rumbles: 0, circle: false, t0: performance.now() };
+  const s = { lx: 0, ly: 0, rx: 0.03, ry: -0.02, buttons: {}, rumbles: 0, circle: false, angle: 0 };
   window.__fake = s;
   const button = (i) => { const v = s.buttons[i] || 0; return { pressed: v > 0.5, touched: v > 0, value: v }; };
   navigator.getGamepads = () => {
     const now = performance.now();
-    if (s.circle) { // half a turn per second
-      const a = ((now - s.t0) / 1000) * Math.PI;
-      s.lx = Math.cos(a) * 0.92; s.ly = Math.sin(a) * 0.92;
+    // A fixed step per call, not per unit of time: the sweep must not depend on how
+    // many frames a slow CI machine manages to render (the page reads once per frame).
+    if (s.circle) {
+      s.angle += 0.045;
+      s.lx = Math.cos(s.angle) * 0.92; s.ly = Math.sin(s.angle) * 0.92;
     }
     return [{
       index: 0, id: 'Smoke Test Pad (STANDARD GAMEPAD Vendor: 0000 Product: 0000)', connected: true, mapping: 'standard',
@@ -205,7 +207,9 @@ module.exports = async function smokeTest(win, outDir, probes) {
       check('gamepad-page-ready', padReady);
       if (padReady) {
         await wc.executeJavaScript('Object.assign(window.__fake, { circle: true }); window.__fake.buttons[0] = 1; window.__fake.buttons[7] = 0.6; 0');
-        await sleep(2600);
+        // wait for the sweep to cover the circle instead of sleeping for a fixed time
+        await waitFor(wc,
+          "(() => { const m = /(\\d+)%/.exec(document.getElementById('stick-left-circ').textContent); return !!m && Number(m[1]) >= 95; })()", 20000);
         const ui = await wc.executeJavaScript(`({
           cells: document.querySelectorAll('.btn-cell').length,
           axes: document.querySelectorAll('.axis-row').length,
@@ -225,12 +229,12 @@ module.exports = async function smokeTest(win, outDir, probes) {
         await wc.executeJavaScript(
           "Object.assign(window.__fake, { circle: false, lx: 0.8, ly: 0, rx: 0.03, ry: -0.02 }); document.getElementById('rest-start').click(); 0");
         const movedRejected = await waitFor(wc,
-          "!document.getElementById('rest-start').disabled && document.getElementById('rest-message').classList.contains('text-warning')", 8000);
+          "!document.getElementById('rest-start').disabled && document.getElementById('rest-message').classList.contains('text-warning')", 15000);
         check('gamepad-rest-rejects-moved-stick', movedRejected);
 
         await wc.executeJavaScript(
           "Object.assign(window.__fake, { lx: 0.01, ly: 0 }); document.getElementById('rest-start').click(); 0");
-        const restDone = await waitFor(wc, "!document.getElementById('rest-table').hidden", 8000);
+        const restDone = await waitFor(wc, "!document.getElementById('rest-table').hidden", 15000);
         const rows = restDone ? await wc.executeJavaScript(`[...document.querySelectorAll('#rest-rows tr')].map((tr) => ({
           side: tr.dataset.side, cells: [...tr.children].map((td) => td.textContent), verdict: tr.lastElementChild.dataset.verdict }))`) : [];
         results.gamepadRest = rows;
@@ -243,18 +247,18 @@ module.exports = async function smokeTest(win, outDir, probes) {
         // update-rate test: the synthetic pad updates every 8 ms = 125 Hz
         await wc.executeJavaScript("document.getElementById('poll-start').click(); 0");
         const pollDone = await waitFor(wc,
-          "!document.getElementById('poll-start').disabled && /\\d+ (Гц|Hz)/.test(document.getElementById('poll-message').textContent)", 12000);
+          "!document.getElementById('poll-start').disabled && /\\d+ (Гц|Hz)/.test(document.getElementById('poll-message').textContent)", 20000);
         const pollText = await wc.executeJavaScript("document.getElementById('poll-message').textContent");
         const hz = Number((/(\d+) (?:Гц|Hz)/.exec(pollText) || [])[1]);
         check('gamepad-update-rate', pollDone && hz >= 115 && hz <= 135, pollText);
 
         // vibration
         await wc.executeJavaScript("document.getElementById('rumble-both').click(); 0");
-        await sleep(300);
-        check('gamepad-vibration', (await wc.executeJavaScript('window.__fake.rumbles')) === 1);
+        check('gamepad-vibration', await waitFor(wc, 'window.__fake.rumbles === 1', 5000));
 
-        // report
-        await sleep(700);
+        // report (refreshed by the page a few times per second)
+        await waitFor(wc,
+          "(() => { const v = document.getElementById('report').value; return v.includes('Update rate') && v.includes('Circularity left') && v.includes('at once'); })()", 10000);
         const reportText = await wc.executeJavaScript("document.getElementById('report').value");
         results.gamepadReport = reportText;
         check('gamepad-report',
@@ -276,6 +280,16 @@ module.exports = async function smokeTest(win, outDir, probes) {
     check('unexpected-exception', false, String(error?.stack || error));
   } finally {
     clearTimeout(watchdog);
+  }
+
+  // On GitHub Actions, failed checks become annotations: unlike the job log they can
+  // be read through the public API, so a red CI run can be diagnosed without logging in.
+  if (process.env.GITHUB_ACTIONS === 'true') {
+    const escape = (text) => String(text).replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+    for (const name of failures) {
+      const detail = JSON.stringify(results[name] ?? null) ?? 'null';
+      console.log(`::error title=${escape(`smoke-${name}`)}::${escape(detail.slice(0, 900))}`);
+    }
   }
 
   fs.writeFileSync(path.join(outDir, 'smoke-result.json'), JSON.stringify({ failures, results }, null, 2));
