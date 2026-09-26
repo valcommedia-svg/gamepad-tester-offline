@@ -1,0 +1,72 @@
+{
+  "name": "gamepad-tester-offline",
+  "version": "1.0.0",
+  "description": "Offline desktop app for testing and calibrating PlayStation controllers (DualShock 4, DualSense, DualSense Edge, PS VR2)",
+  "private": true,
+  "license": "MIT",
+  "author": "GamePad Tester Offline",
+  "main": "electron/main.js",
+  "type": "commonjs",
+  "scripts": {
+    "upstream:fetch": "node scripts/fetch-upstream.mjs",
+    "build:web": "node scripts/build-web.mjs",
+    "icon": "electron scripts/make-icon.cjs",
+    "start": "electron .",
+    "smoke": "electron . --smoke-test=./smoke-output",
+    "dist": "npm run build:web && electron-builder --publish never",
+    "dist:win": "npm run build:web && electron-builder --win --publish never",
+    "dist:mac": "npm run build:web && electron-builder --mac --publish never"
+  },
+  "devDependencies": {
+    "@fortawesome/fontawesome-free": "6.6.0",
+    "bootstrap": "5.3.3",
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3",
+    "jquery": "3.7.1"
+  },
+  "build": {
+    "appId": "com.gamepadtester.offline",
+    "productName": "GamePad Tester Offline",
+    "copyright": "Web UI based on dualshock-tools (MIT) by the_al and contributors",
+    "directories": {
+      "buildResources": "build",
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "web/**/*"
+    ],
+    "asar": true,
+    "afterSign": "build/adhoc-sign.cjs",
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}-${arch}.${ext}"
+    },
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] },
+        { "target": "zip", "arch": ["x64", "arm64"] }
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Used by the microphone and headphone quick tests."
+      },
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}"
+    }
+  }
+}

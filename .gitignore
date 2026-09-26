@@ -1,0 +1,20 @@
+# dependencies
+node_modules/
+
+# generated / fetched (recreate with `npm run build:web`)
+upstream/
+web/
+
+# packaging + test output
+release/
+smoke-output/
+
+# local tool settings (per machine, not for publishing)
+.claude/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log

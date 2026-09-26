@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#4f46e5"/>
+    </linearGradient>
+  </defs>
+  <!-- app tile -->
+  <rect x="100" y="100" width="824" height="824" rx="190" fill="url(#bg)"/>
+  <!-- generic gamepad silhouette -->
+  <path fill="#f8fafc" d="M312 340c-62 0-104 40-124 116l-44 168c-14 56 22 108 78 108 44 0 70-28 96-64l34-48h240l34 48c26 36 52 64 96 64 56 0 92-52 78-108l-44-168c-20-76-62-116-124-116H312z"/>
+  <!-- d-pad -->
+  <path fill="#1e293b" d="M330 424h44v40h40v44h-40v40h-44v-40h-40v-44h40z"/>
+  <!-- face buttons -->
+  <g fill="#1e293b">
+    <circle cx="694" cy="410" r="24"/>
+    <circle cx="694" cy="504" r="24"/>
+    <circle cx="647" cy="457" r="24"/>
+    <circle cx="741" cy="457" r="24"/>
+  </g>
+  <!-- sticks -->
+  <circle cx="432" cy="598" r="58" fill="#1e293b"/>
+  <circle cx="592" cy="598" r="58" fill="#1e293b"/>
+  <circle cx="432" cy="598" r="30" fill="#38bdf8"/>
+  <circle cx="592" cy="598" r="30" fill="#38bdf8"/>
+</svg>
