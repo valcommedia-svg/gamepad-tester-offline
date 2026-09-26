@@ -11,7 +11,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { fetchUpstream, upstreamDir } from './fetch-upstream.mjs';
-import { applyPatches } from './patches.mjs';
+import { CSP, applyPatches } from './patches.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const webDir = path.join(root, 'web');
@@ -62,6 +62,32 @@ const faFonts = path.join(webDir, 'vendor', 'fontawesome', 'webfonts');
 fs.cpSync(path.join(nodeModules, '@fortawesome', 'fontawesome-free', 'webfonts'), faFonts, { recursive: true });
 for (const f of fs.readdirSync(faFonts)) {
   if (!f.endsWith('.woff2')) fs.rmSync(path.join(faFonts, f));
+}
+
+// Our own pages (extra/): copied as-is, HTML gets the same CSP as upstream's page.
+const extraDir = path.join(root, 'extra');
+const cspTag = `<meta http-equiv="Content-Security-Policy" content="${CSP}">`;
+for (const name of fs.readdirSync(extraDir)) {
+  if (name === 'package.json') continue; // only marks the folder as ESM for Node tests
+  const src = path.join(extraDir, name);
+  const dest = path.join(webDir, name);
+  if (name.endsWith('.html')) {
+    const html = fs.readFileSync(src, 'utf8');
+    if (!html.includes('<!--CSP-->')) throw new Error(`extra/${name} is missing the <!--CSP--> placeholder`);
+    fs.writeFileSync(dest, html.replace('<!--CSP-->', cspTag));
+  } else {
+    fs.copyFileSync(src, dest);
+  }
+}
+
+// Translations for strings we add to upstream's page (its other languages fall back to English).
+const EXTRA_TRANSLATIONS = {
+  ru_ru: { 'Any gamepad test': 'Тест любого геймпада' },
+};
+for (const [lang, entries] of Object.entries(EXTRA_TRANSLATIONS)) {
+  const file = path.join(webDir, 'lang', `${lang}.json`);
+  const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+  fs.writeFileSync(file, JSON.stringify({ ...data, ...entries }));
 }
 
 // Keep the upstream MIT notice and credits next to the bundle.

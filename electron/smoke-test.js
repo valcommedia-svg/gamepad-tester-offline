@@ -41,6 +41,29 @@ const INSPECT = `(async () => {
   return out;
 })()`;
 
+// A synthetic gamepad injected into navigator.getGamepads(): a left stick that
+// can circle, a right stick with a small constant offset, buttons, 125 Hz
+// timestamps and a counting vibration actuator.
+const FAKE_GAMEPAD = `(() => {
+  const s = { lx: 0, ly: 0, rx: 0.03, ry: -0.02, buttons: {}, rumbles: 0, circle: false, t0: performance.now() };
+  window.__fake = s;
+  const button = (i) => { const v = s.buttons[i] || 0; return { pressed: v > 0.5, touched: v > 0, value: v }; };
+  navigator.getGamepads = () => {
+    const now = performance.now();
+    if (s.circle) { // half a turn per second
+      const a = ((now - s.t0) / 1000) * Math.PI;
+      s.lx = Math.cos(a) * 0.92; s.ly = Math.sin(a) * 0.92;
+    }
+    return [{
+      index: 0, id: 'Smoke Test Pad (STANDARD GAMEPAD Vendor: 0000 Product: 0000)', connected: true, mapping: 'standard',
+      timestamp: Math.floor(now / 8) * 8,
+      axes: [s.lx, s.ly, s.rx, s.ry],
+      buttons: Array.from({ length: 17 }, (_, i) => button(i)),
+      vibrationActuator: { type: 'dual-rumble', playEffect: async () => { s.rumbles += 1; return 'complete'; } },
+    }];
+  };
+})()`;
+
 async function waitFor(wc, expression, timeoutMs = 20000) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
@@ -156,6 +179,82 @@ module.exports = async function smokeTest(win, outDir, probes) {
         && /Connect dialog requests: [1-9]/.test(report)
         && !report.toLowerCase().includes(os.homedir().toLowerCase()),
         report.split('\n').slice(0, 4));
+
+      // 6) "Any gamepad" page, reached through the menu link and driven by a synthetic pad
+      const link = await wc.executeJavaScript(
+        "(() => { const a = document.querySelector('a[href=\"gamepad.html\"]'); return a ? a.textContent : null; })()");
+      check('nav-link-translated', typeof link === 'string' && /[Ѐ-ӿ]/.test(link), link);
+      await wc.executeJavaScript("document.querySelector('a[href=\"gamepad.html\"]').click()");
+      check('nav-link-opens-in-app',
+        await waitFor(wc, "location.pathname.endsWith('gamepad.html') && document.readyState === 'complete'"));
+
+      await wc.executeJavaScript(FAKE_GAMEPAD);
+      const padReady = await waitFor(wc, "!document.getElementById('panel').hidden");
+      check('gamepad-page-ready', padReady);
+      if (padReady) {
+        await wc.executeJavaScript('Object.assign(window.__fake, { circle: true }); window.__fake.buttons[0] = 1; window.__fake.buttons[7] = 0.6; 0');
+        await sleep(2600);
+        const ui = await wc.executeJavaScript(`({
+          cells: document.querySelectorAll('.btn-cell').length,
+          axes: document.querySelectorAll('.axis-row').length,
+          active: [...document.querySelectorAll('.btn-cell.active .name')].map((n) => n.textContent),
+          rt: document.querySelectorAll('.btn-cell')[7].querySelector('.value').textContent,
+          circ: document.getElementById('stick-left-circ').textContent,
+          values: document.getElementById('stick-left-values').textContent,
+          status: document.getElementById('status-text').textContent,
+        })`);
+        results.gamepadUi = ui;
+        check('gamepad-buttons-and-axes', ui.cells === 17 && ui.axes === 4 && ui.active.includes('A') && ui.active.includes('RT') && ui.rt === '60%', ui);
+        check('gamepad-status-shows-pad', ui.status.includes('Smoke Test Pad'), ui.status);
+        const coverage = Number((/(\d+)%/.exec(ui.circ) || [])[1]);
+        check('gamepad-circularity', coverage >= 90, ui.circ);
+
+        // drift test: first a "moved" run must be rejected, then a valid one
+        await wc.executeJavaScript(
+          "Object.assign(window.__fake, { circle: false, lx: 0.8, ly: 0, rx: 0.03, ry: -0.02 }); document.getElementById('rest-start').click(); 0");
+        const movedRejected = await waitFor(wc,
+          "!document.getElementById('rest-start').disabled && document.getElementById('rest-message').classList.contains('text-warning')", 8000);
+        check('gamepad-rest-rejects-moved-stick', movedRejected);
+
+        await wc.executeJavaScript(
+          "Object.assign(window.__fake, { lx: 0.01, ly: 0 }); document.getElementById('rest-start').click(); 0");
+        const restDone = await waitFor(wc, "!document.getElementById('rest-table').hidden", 8000);
+        const rows = restDone ? await wc.executeJavaScript(`[...document.querySelectorAll('#rest-rows tr')].map((tr) => ({
+          side: tr.dataset.side, cells: [...tr.children].map((td) => td.textContent), verdict: tr.lastElementChild.dataset.verdict }))`) : [];
+        results.gamepadRest = rows;
+        const left = rows.find((r) => r.side === 'left');
+        const right = rows.find((r) => r.side === 'right');
+        check('gamepad-rest-results',
+          !!left && !!right && left.verdict === 'good' && right.verdict === 'minor'
+          && left.cells[3] === '1.0%' && right.cells[3] === '3.6%' && right.cells[4] === '5%', rows);
+
+        // update-rate test: the synthetic pad updates every 8 ms = 125 Hz
+        await wc.executeJavaScript("document.getElementById('poll-start').click(); 0");
+        const pollDone = await waitFor(wc,
+          "!document.getElementById('poll-start').disabled && /\\d+ (Гц|Hz)/.test(document.getElementById('poll-message').textContent)", 12000);
+        const pollText = await wc.executeJavaScript("document.getElementById('poll-message').textContent");
+        const hz = Number((/(\d+) (?:Гц|Hz)/.exec(pollText) || [])[1]);
+        check('gamepad-update-rate', pollDone && hz >= 115 && hz <= 135, pollText);
+
+        // vibration
+        await wc.executeJavaScript("document.getElementById('rumble-both').click(); 0");
+        await sleep(300);
+        check('gamepad-vibration', (await wc.executeJavaScript('window.__fake.rumbles')) === 1);
+
+        // report
+        await sleep(700);
+        const reportText = await wc.executeJavaScript("document.getElementById('report').value");
+        results.gamepadReport = reportText;
+        check('gamepad-report',
+          /Smoke Test Pad/.test(reportText) && /Rest left/.test(reportText) && /Rest right/.test(reportText)
+          && /Circularity left/.test(reportText) && /Update rate: 1[23]\d Hz/.test(reportText) && /at once: 2/.test(reportText),
+          reportText.split('\n'));
+
+        await wc.executeJavaScript('window.scrollTo(0, 0)');
+        await screenshot(wc, path.join(outDir, '5-gamepad-top.png'));
+        await wc.executeJavaScript('window.scrollTo(0, document.body.scrollHeight)');
+        await screenshot(wc, path.join(outDir, '5-gamepad-bottom.png'));
+      }
     }
 
     const blocked = probes.blockedRequests();

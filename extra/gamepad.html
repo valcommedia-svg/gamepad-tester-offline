@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+<meta charset="utf-8">
+<!--CSP-->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gamepad test</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<link href="vendor/fontawesome/css/fontawesome.min.css" rel="stylesheet">
+<link href="vendor/fontawesome/css/all.min.css" rel="stylesheet">
+<link href="gamepad.css" rel="stylesheet">
+<script type="module" src="gamepad.js"></script>
+</head>
+<body>
+  <nav class="navbar bg-body-tertiary navbar-expand">
+    <div class="container-fluid">
+      <span class="navbar-brand" data-i18n="page.title">Gamepad test</span>
+      <ul class="navbar-nav ms-auto align-items-center">
+        <li class="nav-item">
+          <a class="nav-link" href="index.html" data-i18n="nav.playstation">PlayStation calibration</a>
+        </li>
+        <li class="nav-item align-items-center d-flex ms-3">
+          <i class="fas fa-sun"></i>
+          <div class="ms-2 form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="colorModeSwitch" aria-label="Dark mode">
+          </div>
+          <i class="fas fa-moon"></i>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="container py-3">
+    <div id="status" class="alert alert-secondary d-flex align-items-center gap-2" role="status">
+      <i class="fas fa-gamepad"></i>
+      <span id="status-text" data-i18n="hint"></span>
+    </div>
+
+    <div id="picker-wrap" class="mb-3" hidden>
+      <label for="picker" class="form-label" data-i18n="pick">Gamepad</label>
+      <select id="picker" class="form-select"></select>
+    </div>
+
+    <div id="panel" hidden>
+      <div class="row g-3">
+        <section class="col-lg-6">
+          <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span data-i18n="sticks">Sticks</span>
+              <button type="button" id="stick-reset" class="btn btn-sm btn-outline-secondary" data-i18n="stick.reset">Reset trace</button>
+            </div>
+            <div class="card-body">
+              <div class="row g-3 text-center">
+                <div class="col-6">
+                  <div class="fw-semibold mb-1" data-i18n="stick.left">Left stick</div>
+                  <canvas id="stick-left" class="stick-canvas" width="240" height="240"></canvas>
+                  <div id="stick-left-values" class="stick-values font-monospace"></div>
+                  <div id="stick-left-circ" class="small text-body-secondary"></div>
+                </div>
+                <div class="col-6">
+                  <div class="fw-semibold mb-1" data-i18n="stick.right">Right stick</div>
+                  <canvas id="stick-right" class="stick-canvas" width="240" height="240"></canvas>
+                  <div id="stick-right-values" class="stick-values font-monospace"></div>
+                  <div id="stick-right-circ" class="small text-body-secondary"></div>
+                </div>
+              </div>
+              <p class="small text-body-secondary mt-3 mb-0" data-i18n="stick.hint"></p>
+            </div>
+          </div>
+        </section>
+
+        <section class="col-lg-6">
+          <div class="card h-100">
+            <div class="card-header" data-i18n="buttons">Buttons</div>
+            <div class="card-body">
+              <div id="button-grid" class="button-grid"></div>
+              <div id="pressed" class="small text-body-secondary mt-2"></div>
+              <h2 class="h6 mt-4" data-i18n="axes">Raw axes</h2>
+              <div id="axis-list" class="axis-list"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="row g-3 mt-1">
+        <section class="col-12">
+          <div class="card">
+            <div class="card-header" data-i18n="drift.title">Drift (rest) test</div>
+            <div class="card-body">
+              <p class="small" data-i18n="drift.desc"></p>
+              <button type="button" id="rest-start" class="btn btn-primary btn-sm" data-i18n="drift.start">Measure</button>
+              <div class="progress mt-2" role="progressbar" aria-label="progress" style="height: 6px;">
+                <div id="rest-progress" class="progress-bar" style="width: 0%"></div>
+              </div>
+              <div id="rest-message" class="small mt-2"></div>
+              <div class="table-responsive">
+                <table id="rest-table" class="table table-sm align-middle mt-2 mb-1" hidden>
+                  <thead>
+                    <tr>
+                      <th data-i18n="drift.col.stick"></th>
+                      <th data-i18n="drift.col.offset"></th>
+                      <th data-i18n="drift.col.noise"></th>
+                      <th data-i18n="drift.col.max"></th>
+                      <th data-i18n="drift.col.deadzone"></th>
+                      <th data-i18n="drift.col.verdict"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="rest-rows"></tbody>
+                </table>
+              </div>
+              <p class="small text-body-secondary mb-0" data-i18n="drift.note"></p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="row g-3 mt-1">
+        <section class="col-lg-6">
+          <div class="card mb-3">
+            <div class="card-header" data-i18n="poll.title">Update rate</div>
+            <div class="card-body">
+              <p class="small" data-i18n="poll.desc"></p>
+              <button type="button" id="poll-start" class="btn btn-primary btn-sm" data-i18n="poll.start">Measure 5 s</button>
+              <div class="progress mt-2" role="progressbar" aria-label="progress" style="height: 6px;">
+                <div id="poll-progress" class="progress-bar" style="width: 0%"></div>
+              </div>
+              <div id="poll-message" class="mt-2"></div>
+            </div>
+          </div>
+
+          <div class="card mb-3">
+            <div class="card-header" data-i18n="rumble.title">Vibration</div>
+            <div class="card-body">
+              <div class="btn-group btn-group-sm" role="group">
+                <button type="button" id="rumble-weak" class="btn btn-outline-primary" data-i18n="rumble.weak">Weak</button>
+                <button type="button" id="rumble-strong" class="btn btn-outline-primary" data-i18n="rumble.strong">Strong</button>
+                <button type="button" id="rumble-both" class="btn btn-outline-primary" data-i18n="rumble.both">Both</button>
+              </div>
+              <div id="rumble-message" class="small text-body-secondary mt-2"></div>
+            </div>
+          </div>
+
+        </section>
+
+        <section class="col-lg-6">
+          <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span data-i18n="report.title">Report</span>
+              <button type="button" id="report-copy" class="btn btn-sm btn-outline-secondary" data-i18n="report.copy">Copy report</button>
+            </div>
+            <div class="card-body">
+              <textarea id="report" class="form-control font-monospace small" rows="10" readonly></textarea>
+              <div id="report-message" class="small text-body-secondary mt-1"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

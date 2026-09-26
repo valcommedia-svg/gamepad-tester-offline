@@ -8,7 +8,7 @@ import path from 'node:path';
 
 // The renderer may only load code/data from its own origin. connect-src 'self'
 // also blocks any analytics request that might slip through.
-const CSP = [
+export const CSP = [
   "default-src 'none'",
   "script-src 'self' 'unsafe-inline'", // upstream uses inline onclick= handlers
   "style-src 'self' 'unsafe-inline'",
@@ -66,6 +66,18 @@ export const PATCHES = [
     file: 'index.html',
     find: /<meta charset="utf-8">/g,
     replace: `<meta charset="utf-8">\n<meta http-equiv="Content-Security-Policy" content="${CSP}">`,
+    count: 1,
+  },
+
+  // --- navigation entry for our own "any gamepad" page (extra/gamepad.html) --
+  // Translated through upstream's own mechanism: the ds-i18n class plus a key in
+  // lang/*.json (added by scripts/build-web.mjs); other languages keep English.
+  {
+    name: 'nav link to gamepad page',
+    file: 'index.html',
+    find: /(<ul class="navbar-nav">\s*)(<li class="nav-item">\s*<a class="nav-link ds-i18n" href="#" onclick="show_faq_modal\(\);">)/g,
+    replace: (_m, list, faq) =>
+      `${list}<li class="nav-item"><a class="nav-link ds-i18n" href="gamepad.html">Any gamepad test</a></li>\n          ${faq}`,
     count: 1,
   },
 

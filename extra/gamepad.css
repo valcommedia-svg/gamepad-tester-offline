@@ -1,0 +1,105 @@
+.stick-canvas {
+  width: 100%;
+  max-width: 240px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+
+.stick-values {
+  font-size: 0.85rem;
+  min-height: 1.3em;
+}
+
+.button-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 0.4rem;
+}
+
+.btn-cell {
+  position: relative;
+  overflow: hidden;
+  padding: 0.35rem 0.4rem;
+  text-align: center;
+  font-size: 0.85rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-tertiary-bg);
+  user-select: none;
+}
+
+/* analog fill for triggers / partial presses */
+.btn-cell .fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: var(--bs-primary);
+  opacity: 0.35;
+}
+
+.btn-cell .name,
+.btn-cell .value {
+  position: relative;
+}
+
+.btn-cell .value {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--bs-secondary-color);
+  min-height: 1em;
+}
+
+.btn-cell.active {
+  background: var(--bs-primary);
+  border-color: var(--bs-primary);
+  color: #fff;
+}
+
+.btn-cell.active .value {
+  color: #fff;
+}
+
+.axis-list {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.axis-row {
+  display: grid;
+  grid-template-columns: 3.2rem 1fr 4rem;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.axis-row .bar {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bs-tertiary-bg);
+  border: 1px solid var(--bs-border-color);
+}
+
+.axis-row .bar::after { /* center tick */
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  bottom: -2px;
+  width: 1px;
+  background: var(--bs-secondary-color);
+}
+
+.axis-row .marker {
+  position: absolute;
+  top: -1px;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: var(--bs-primary);
+}
+
+#report {
+  resize: vertical;
+}

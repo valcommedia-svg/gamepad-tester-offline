@@ -1,0 +1,6 @@
+{
+  "name": "gamepad-page",
+  "private": true,
+  "type": "module",
+  "description": "Marks extra/*.js as ES modules for Node (unit tests). Not copied into web/."
+}
